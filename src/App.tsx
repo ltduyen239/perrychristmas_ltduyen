@@ -1,3 +1,4 @@
+//全屏版
 import { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, extend } from '@react-three/fiber';
 import {
