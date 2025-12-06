@@ -62,7 +62,7 @@ const bodyPhotoPaths = [
 // --- 视觉配置中心 ---
 const CONFIG = {
   colors: {
-    emerald: '#FFD700', // 祖母绿 (这里被设为金色了，可以改回 '#004225')
+    emerald: '#B8860B', // 祖母绿 (这里被设为金色#FFD700了，可以改回 '#004225')暗金色/铜色 #B8860B
     gold: '#FFD700',    // 金色
     silver: '#ECEFF1',  // 银色
     red: '#D32F2F',     // 红色
@@ -99,7 +99,9 @@ const FoliageMaterial = shaderMaterial(
     float t = cubicInOut(uProgress);
     vec3 finalPos = mix(position, aTargetPos + noise, t);
     vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-    gl_PointSize = (60.0 * (1.0 + aRandom)) / -mvPosition.z;
+    // 🔴 修改这里：把 60.0 改为 30.0 或 40.0
+    // 这会让每个“树叶”粒子变小，看起来不那么像大方块
+    gl_PointSize = (30.0 * (1.0 + aRandom)) / -mvPosition.z;
     gl_Position = projectionMatrix * mvPosition;
     vMix = t;
   }`,
@@ -601,7 +603,7 @@ const Experience = ({ sceneState, rotationSpeed }: { sceneState: 'CHAOS' | 'FORM
       </group>
 
       <EffectComposer>
-        <Bloom luminanceThreshold={0.8} luminanceSmoothing={0.1} intensity={0.8} radius={0.5} mipmapBlur />
+        <Bloom luminanceThreshold={1.5} luminanceSmoothing={0.1} intensity={0.8} radius={0.5} mipmapBlur />
         <Vignette eskil={false} offset={0.1} darkness={1.2} />
       </EffectComposer>
     </>
