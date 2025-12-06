@@ -17,17 +17,18 @@ import * as random from 'maath/random';
 import { GestureRecognizer, FilesetResolver, DrawingUtils } from "@mediapipe/tasks-vision";
 
 // --- 动态生成照片列表 (top.jpg + 1.jpg 到 31.jpg) ---
-const TOTAL_NUMBERED_PHOTOS = 31;
+const TOTAL_NUMBERED_PHOTOS = 6;
+const PHOTO_VERSION = '2';  // ⬅️ 换照片就改这个数字(2,3,4,5....)
 // 修改：将 top.jpg 加入到数组开头
 const bodyPhotoPaths = [
-  '/photos/top.jpg',
-  ...Array.from({ length: TOTAL_NUMBERED_PHOTOS }, (_, i) => `/photos/${i + 1}.jpg`)
+  '/photos/top.jpg?v=${PHOTO_VERSION}',
+  ...Array.from({ length: TOTAL_NUMBERED_PHOTOS }, (_, i) => `/photos/${i + 1}.jpg?v=${PHOTO_VERSION}`) // ⬅️ 添加 ?v=${PHOTO_VERSION}
 ];
 
 // --- 视觉配置 ---
 const CONFIG = {
   colors: {
-    emerald: '#004225', // 纯正祖母绿
+    emerald: '#B860B', // 纯正祖母绿#004225, 纯金色: #FFD700,暗金色8 #B860B,香槟金 #F7E7CE,橙金色 #FFA500 
     gold: '#FFD700',
     silver: '#ECEFF1',
     red: '#D32F2F',
@@ -43,7 +44,7 @@ const CONFIG = {
   },
   counts: {
     foliage: 15000,
-    ornaments: 6,   // 拍立得照片数量
+    ornaments: 100,   // 拍立得照片数量
     elements: 200,    // 圣诞元素数量
     lights: 400       // 彩灯数量
   },
