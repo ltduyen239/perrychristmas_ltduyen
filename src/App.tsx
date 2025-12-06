@@ -597,7 +597,7 @@ const Experience = ({ sceneState, rotationSpeed }: { sceneState: 'CHAOS' | 'FORM
          //  <BurstSparkles state={sceneState} />
         </Suspense>
         <Sparkles count={400} scale={50} size={8} speed={0.4} opacity={0.4} color={CONFIG.colors.silver} />
-        <Sparkles count={50} scale={45} size={12} speed={2.8} opacity={0.3} color={CONFIG.colors.gold} />
+        //  <Sparkles count={50} scale={45} size={12} speed={2.8} opacity={0.3} color={CONFIG.colors.gold} />
       </group>
 
       <EffectComposer>
