@@ -411,6 +411,156 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
+// 👇👇👇 在这里添加下面的代码 👇👇👇
+
+// --- Component: Golden Sparkles (金色闪光粒子) ---
+const GoldenSparkles = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
+  const count = 150;
+  const groupRef = useRef<THREE.Group>(null);
+  const geometry = useMemo(() => new THREE.SphereGeometry(0.3, 8, 8), []);
+
+  const data = useMemo(() => {
+    return new Array(count).fill(0).map(() => {
+      const h = CONFIG.tree.height;
+      const y = (Math.random() * h) - (h / 2);
+      const rBase = CONFIG.tree.radius;
+      const currentRadius = (rBase * (1 - (y + (h/2)) / h)) * 1.2;
+      const theta = Math.random() * Math.PI * 2;
+      
+      const targetPos = new THREE.Vector3(
+        currentRadius * Math.cos(theta), 
+        y, 
+        currentRadius * Math.sin(theta)
+      );
+      
+      return {
+        position: targetPos,
+        speed: 1.5 + Math.random() * 2.5,
+        timeOffset: Math.random() * 100,
+        scale: 0.3 + Math.random() * 0.7
+      };
+    });
+  }, []);
+
+  useFrame((stateObj) => {
+    if (!groupRef.current) return;
+    const time = stateObj.clock.elapsedTime;
+    const isFormed = state === 'FORMED';
+
+    groupRef.current.children.forEach((child, i) => {
+      const mesh = child as THREE.Mesh;
+      const objData = data[i];
+      
+      const twinkle = (Math.sin(time * objData.speed + objData.timeOffset) + 1) / 2;
+      const intensity = isFormed ? (3 + twinkle * 8) : 0;
+      
+      if (mesh.material) {
+        (mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
+      }
+      
+      const scalePulse = 1 + twinkle * 0.3;
+      mesh.scale.setScalar(objData.scale * scalePulse);
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {data.map((obj, i) => (
+        <mesh 
+          key={i} 
+          position={obj.position}
+          geometry={geometry}
+        >
+          <meshStandardMaterial 
+            color={CONFIG.colors.gold}
+            emissive={CONFIG.colors.gold}
+            emissiveIntensity={0}
+            toneMapped={false}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// --- Component: Burst Sparkles (爆发式闪光) ---
+const BurstSparkles = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
+  const pointsRef = useRef<THREE.Points>(null);
+  const [burstTime, setBurstTime] = useState(0);
+  
+  const { positions, scales, opacities } = useMemo(() => {
+    const count = 200;
+    const positions = new Float32Array(count * 3);
+    const scales = new Float32Array(count);
+    const opacities = new Float32Array(count);
+    
+    for (let i = 0; i < count; i++) {
+      const h = CONFIG.tree.height;
+      const y = (Math.random() * h) - (h / 2);
+      const rBase = CONFIG.tree.radius;
+      const currentRadius = (rBase * (1 - (y + (h/2)) / h)) * 1.5;
+      const theta = Math.random() * Math.PI * 2;
+      
+      positions[i * 3] = currentRadius * Math.cos(theta);
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = currentRadius * Math.sin(theta);
+      
+      scales[i] = Math.random();
+      opacities[i] = 0;
+    }
+    
+    return { positions, scales, opacities };
+  }, []);
+
+  useFrame((stateObj) => {
+    if (!pointsRef.current || state !== 'FORMED') return;
+    
+    const time = stateObj.clock.elapsedTime;
+    const geometry = pointsRef.current.geometry;
+    const opacityAttr = geometry.attributes.aOpacity;
+    
+    if (Math.floor(time / 2) !== burstTime) {
+      setBurstTime(Math.floor(time / 2));
+      
+      for (let i = 0; i < opacities.length; i++) {
+        if (Math.random() < 0.3) {
+          opacities[i] = 1.0;
+        }
+      }
+    }
+    
+    for (let i = 0; i < opacities.length; i++) {
+      opacities[i] *= 0.95;
+      opacityAttr.setX(i, opacities[i]);
+    }
+    
+    opacityAttr.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-aScale" args={[scales, 1]} />
+        <bufferAttribute attach="attributes-aOpacity" args={[opacities, 1]} />
+      </bufferGeometry>
+      <pointsMaterial
+        size={20}
+        color={CONFIG.colors.gold}
+        transparent
+        opacity={0.9}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+        depthWrite={false}
+      />
+    </points>
+  );
+};
+
+// 👆👆👆 添加到这里 👆👆👆
+
 // --- Main Scene Experience ---
 const Experience = ({ sceneState, rotationSpeed }: { sceneState: 'CHAOS' | 'FORMED', rotationSpeed: number }) => {
   const controlsRef = useRef<any>(null);
