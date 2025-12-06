@@ -16,6 +16,38 @@ import { MathUtils } from 'three';
 import * as random from 'maath/random';
 import { GestureRecognizer, FilesetResolver, DrawingUtils } from "@mediapipe/tasks-vision";
 
+// --- 背景音乐 Hook ---
+const useBackgroundMusic = () => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    audioRef.current = new Audio('/music.mp3');
+    audioRef.current.loop = true;  // 循环播放
+    audioRef.current.volume = 0.5; // 音量 50%
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  return { isPlaying, toggleMusic };
+};
+
 // --- 动态生成照片列表 (top.jpg + 1.jpg 到 31.jpg) ---
 const TOTAL_NUMBERED_PHOTOS = 6;
 const PHOTO_VERSION = '2';  // ⬅️ 换照片就改这个数字(2,3,4,5....)
@@ -510,7 +542,8 @@ export default function GrandTreeApp() {
   const [rotationSpeed, setRotationSpeed] = useState(0);
   const [aiStatus, setAiStatus] = useState("INITIALIZING...");
   const [debugMode, setDebugMode] = useState(false);
-
+// 添加这行Music
+  const { isPlaying, toggleMusic } = useBackgroundMusic();
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', position: 'relative', overflow: 'hidden' }}>
       <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
@@ -538,6 +571,30 @@ export default function GrandTreeApp() {
 
       {/* UI - Buttons */}
       <div style={{ position: 'absolute', bottom: '30px', right: '40px', zIndex: 10, display: 'flex', gap: '10px' }}>
+       {/* 🎵 音乐按钮 - */}
+  <button 
+    onClick={toggleMusic} 
+    style={{ 
+      padding: '12px 15px', 
+      backgroundColor: isPlaying ? '#D32F2F' : 'rgba(0,0,0,0.5)', 
+      border: '1px solid #D32F2F', 
+      color: isPlaying ? '#fff' : '#D32F2F', 
+      fontFamily: 'sans-serif', 
+      fontSize: '16px', 
+      fontWeight: 'bold', 
+      cursor: 'pointer', 
+      backdropFilter: 'blur(4px)',
+      borderRadius: '50%',
+      width: '48px',
+      height: '48px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    {isPlaying ? '🔊' : '🔇'}
+  </button>
+
         <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '12px 15px', backgroundColor: debugMode ? '#FFD700' : 'rgba(0,0,0,0.5)', border: '1px solid #FFD700', color: debugMode ? '#000' : '#FFD700', fontFamily: 'sans-serif', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
            {debugMode ? 'HIDE DEBUG' : '🛠 DEBUG'}
         </button>
