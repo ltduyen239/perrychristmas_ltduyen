@@ -11,7 +11,7 @@ import {
 } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
-// [修复] 移除了 import { MathUtils, Vector3 } from 'three' 以解决构建错误
+import { MathUtils, Vector3 } from 'three';
 import * as random from 'maath/random';
 import { GestureRecognizer, FilesetResolver, DrawingUtils } from "@mediapipe/tasks-vision";
 
@@ -45,7 +45,7 @@ const useBackgroundMusic = () => {
 
 // --- 照片配置 ---
 const TOTAL_NUMBERED_PHOTOS = 6;
-const PHOTO_VERSION = '5'; // 版本号更新
+const PHOTO_VERSION = '5';
 const bodyPhotoPaths = [
   `/photos/top.jpg?v=${PHOTO_VERSION}`,
   ...Array.from({ length: TOTAL_NUMBERED_PHOTOS }, (_, i) => `/photos/${i + 1}.jpg?v=${PHOTO_VERSION}`)
@@ -72,7 +72,7 @@ const CONFIG = {
   photos: { body: bodyPhotoPaths }
 };
 
-// --- Shader Material (Foliage) ---
+// --- Shader Material ---
 const FoliageMaterial = shaderMaterial(
   { uTime: 0, uColor: new THREE.Color(CONFIG.colors.emerald), uProgress: 0 },
   `uniform float uTime; uniform float uProgress; attribute vec3 aTargetPos; attribute float aRandom;
@@ -124,7 +124,6 @@ const Foliage = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   useFrame((rootState, delta) => {
     if (materialRef.current) {
       materialRef.current.uTime = rootState.clock.elapsedTime;
-      // [修复] 使用 THREE.MathUtils 替代 MathUtils
       materialRef.current.uProgress = THREE.MathUtils.damp(materialRef.current.uProgress, state === 'FORMED' ? 1 : 0, 1.5, delta);
     }
   });
@@ -141,7 +140,7 @@ const Foliage = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- Component: Interactive Photo Ornaments ---
+// --- Component: Interactive Photo Ornaments (修复高度与手势) ---
 const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPinching: boolean }) => {
   const textures = useTexture(CONFIG.photos.body);
   const count = CONFIG.counts.ornaments;
@@ -180,7 +179,7 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
       let closestIdx = -1;
       groupRef.current.children.forEach((child, i) => {
         const dist = child.position.distanceTo(camera.position);
-        if (dist < minDist && dist < 40) {
+        if (dist < minDist && dist < 45) {
           minDist = dist;
           closestIdx = i;
         }
@@ -195,10 +194,12 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
     if (!groupRef.current) return;
     const isFormed = state === 'FORMED';
 
-    const viewDirection = new THREE.Vector3();
-    camera.getWorldDirection(viewDirection); 
-    viewDirection.multiplyScalar(15); 
-    const targetViewPos = camera.position.clone().add(viewDirection);
+    // [核心修正] 照片展示位置逻辑
+    // 使用本地坐标系 (0, 0, -12) 并转换为世界坐标
+    // 这意味着照片永远在相机“镜头”的正前方 12 个单位处
+    // 不受相机俯仰角度影响，永远在屏幕正中心
+    const targetViewPos = new THREE.Vector3(0, 0, -12);
+    targetViewPos.applyMatrix4(camera.matrixWorld);
 
     groupRef.current.children.forEach((group, i) => {
       const objData = data[i];
@@ -211,11 +212,13 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
         targetPosition = isFormed ? objData.targetPos : objData.chaosPos;
       }
 
-      objData.currentPos.lerp(targetPosition, delta * (isActive ? 6.0 : 1.0));
+      objData.currentPos.lerp(targetPosition, delta * (isActive ? 5.0 : 1.0));
       group.position.copy(objData.currentPos);
 
       if (isActive) {
-        group.lookAt(camera.position);
+        group.lookAt(camera.position); // 面向相机
+        // [微调] 稍微抵消一点相机旋转，让照片更正
+        group.rotation.z = camera.rotation.z;
       } else if (isFormed) {
          const lookAtPos = new THREE.Vector3(group.position.x * 2, group.position.y, group.position.z * 2);
          group.lookAt(lookAtPos);
@@ -225,7 +228,7 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
          group.rotation.y += delta * 0.5;
       }
       
-      const targetScale = isActive ? 4.0 : objData.scale;
+      const targetScale = isActive ? 3.5 : objData.scale;
       const currentScale = group.scale.x;
       const newScale = THREE.MathUtils.lerp(currentScale, targetScale, delta * 5);
       group.scale.set(newScale, newScale, newScale);
@@ -250,7 +253,7 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
   );
 };
 
-// --- Model: Detailed Gift Box ---
+// --- Model Components ---
 const DetailedGiftBox = ({ color, scale, ...props }: any) => {
   return (
     <group scale={[scale, scale, scale]} {...props}>
@@ -270,13 +273,11 @@ const DetailedGiftBox = ({ color, scale, ...props }: any) => {
   )
 }
 
-// --- Model: Candy Cane ---
 const CandyCane = ({ scale, ...props }: any) => {
     const curve = useMemo(() => new THREE.CatmullRomCurve3([
         new THREE.Vector3(0, -0.5, 0), new THREE.Vector3(0, 0.5, 0),
         new THREE.Vector3(0, 0.7, 0.2), new THREE.Vector3(0, 0.6, 0.4),
     ]), []);
-
     return (
         <group scale={[scale, scale, scale]} {...props}>
              <mesh>
@@ -293,11 +294,9 @@ const CandyCane = ({ scale, ...props }: any) => {
     )
 }
 
-// --- Component: Christmas Elements ---
 const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   const count = CONFIG.counts.elements;
   const groupRef = useRef<THREE.Group>(null);
-
   const data = useMemo(() => {
     return new Array(count).fill(0).map(() => {
       const chaosPos = new THREE.Vector3((Math.random()-0.5)*60, (Math.random()-0.5)*60, (Math.random()-0.5)*60);
@@ -306,10 +305,8 @@ const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       const currentRadius = (rBase * (1 - (y + (h/2)) / h)) * 0.9;
       const theta = Math.random() * Math.PI * 2;
       const targetPos = new THREE.Vector3(currentRadius * Math.cos(theta), y, currentRadius * Math.sin(theta));
-
       const type = Math.floor(Math.random() * 3); 
       const color = CONFIG.colors.giftColors[Math.floor(Math.random() * CONFIG.colors.giftColors.length)];
-      
       return { 
           type, chaosPos, targetPos, color, scale: 0.5 + Math.random() * 0.5,
           currentPos: chaosPos.clone(), 
@@ -317,7 +314,6 @@ const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       };
     });
   }, []);
-
   useFrame((_, delta) => {
     if (!groupRef.current) return;
     const isFormed = state === 'FORMED';
@@ -330,7 +326,6 @@ const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       group.rotation.y += delta * objData.rotationSpeed.y;
     });
   });
-
   return (
     <group ref={groupRef}>
       {data.map((obj, i) => (
@@ -349,12 +344,10 @@ const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- Component: Fairy Lights ---
 const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   const count = CONFIG.counts.lights;
   const groupRef = useRef<THREE.Group>(null);
   const geometry = useMemo(() => new THREE.SphereGeometry(0.5, 16, 16), []);
-
   const data = useMemo(() => {
     return new Array(count).fill(0).map(() => {
       const chaosPos = new THREE.Vector3((Math.random()-0.5)*50, (Math.random()-0.5)*50, (Math.random()-0.5)*50);
@@ -367,12 +360,10 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       return { chaosPos, targetPos, color, speed: 1 + Math.random() * 2, offset: Math.random() * 10, currentPos: chaosPos.clone() };
     });
   }, []);
-
   useFrame((stateObj, delta) => {
     if (!groupRef.current) return;
     const isFormed = state === 'FORMED';
     const time = stateObj.clock.elapsedTime;
-
     groupRef.current.children.forEach((mesh: any, i) => {
       const objData = data[i];
       const target = isFormed ? objData.targetPos : objData.chaosPos;
@@ -382,7 +373,6 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       mesh.material.emissiveIntensity = isFormed ? intensity * 5 : 0.2;
     });
   });
-
   return (
     <group ref={groupRef}>
       {data.map((obj, i) => (
@@ -394,7 +384,6 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- Component: Top Star ---
 const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   const groupRef = useRef<THREE.Group>(null);
   const starShape = useMemo(() => {
@@ -409,7 +398,6 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
     return shape;
   }, []);
   const geometry = useMemo(() => new THREE.ExtrudeGeometry(starShape, { depth: 0.4, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 }), [starShape]);
-
   useFrame((_, delta) => {
     if (groupRef.current) {
       groupRef.current.rotation.y += delta;
@@ -417,7 +405,6 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       groupRef.current.scale.lerp(new THREE.Vector3(s,s,s), delta * 2);
     }
   });
-
   return (
     <group ref={groupRef} position={[0, CONFIG.tree.height / 2 + 1.5, 0]}>
       <mesh geometry={geometry}>
@@ -428,34 +415,26 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- Main Scene (Lighting Improved) ---
 const Experience = ({ sceneState, rotationSpeed, isPinching }: { sceneState: 'CHAOS' | 'FORMED', rotationSpeed: number, isPinching: boolean }) => {
   const controlsRef = useRef<any>(null);
-  
   useFrame(() => {
     if (controlsRef.current && !isPinching) {
       controlsRef.current.setAzimuthalAngle(controlsRef.current.getAzimuthalAngle() + rotationSpeed);
       controlsRef.current.update();
     }
   });
-
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 8, 60]} fov={45} />
       <OrbitControls ref={controlsRef} enablePan={false} enableZoom={true} minDistance={20} maxDistance={100} autoRotate={rotationSpeed === 0 && sceneState === 'FORMED' && !isPinching} autoRotateSpeed={0.5} maxPolarAngle={Math.PI / 1.8} />
-
       <color attach="background" args={['#00100a']} />
       <fog attach="fog" args={['#00100a', 60, 150]} />
-      
       <Stars radius={100} depth={50} count={6000} factor={4} saturation={0} fade speed={1} />
       <Environment preset="night" background={false} />
-
       <ambientLight intensity={0.7} color="#ffffff" />
       <hemisphereLight intensity={0.5} color="#ffffff" groundColor="#444444" />
-      
       <spotLight position={[50, 50, 50]} angle={0.3} penumbra={1} intensity={150} color={CONFIG.colors.gold} castShadow />
       <pointLight position={[-20, 10, -20]} intensity={40} color="#ffaa00" />
-
       <group position={[0, -6, 0]}>
         <Foliage state={sceneState} />
         <Suspense fallback={null}>
@@ -466,7 +445,6 @@ const Experience = ({ sceneState, rotationSpeed, isPinching }: { sceneState: 'CH
         </Suspense>
         <Sparkles count={500} scale={40} size={6} speed={0.4} opacity={0.6} color={CONFIG.colors.gold} />
       </group>
-
       <EffectComposer>
         <Bloom luminanceThreshold={0.55} luminanceSmoothing={0.2} intensity={1.5} radius={0.5} mipmapBlur />
         <Vignette eskil={false} offset={0.1} darkness={1.0} />
@@ -475,7 +453,7 @@ const Experience = ({ sceneState, rotationSpeed, isPinching }: { sceneState: 'CH
   );
 };
 
-// --- Gesture Controller (Increased Sensitivity) ---
+// --- Gesture Controller (Strict Separation Logic) ---
 const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -483,7 +461,6 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
   useEffect(() => {
     let gestureRecognizer: GestureRecognizer;
     let requestRef: number;
-
     const setup = async () => {
       onStatus("正在初始化 AI...");
       try {
@@ -496,12 +473,11 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
           runningMode: "VIDEO",
           numHands: 1
         });
-        
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
-          onStatus("AI 就绪: 张开手/握拳/捏合");
+          onStatus("AI 就绪: 握拳变树 / OK手势捏合照片");
           predictWebcam();
         }
       } catch (err: any) {
@@ -513,7 +489,6 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
       if (gestureRecognizer && videoRef.current && canvasRef.current) {
         if (videoRef.current.videoWidth > 0) {
             const results = gestureRecognizer.recognizeForVideo(videoRef.current, Date.now());
-            
             const ctx = canvasRef.current.getContext("2d");
             if (ctx && debugMode) {
                 ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -529,19 +504,51 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
             if (results.gestures.length > 0 && results.landmarks.length > 0) {
               const name = results.gestures[0][0].categoryName;
               const landmarks = results.landmarks[0];
+              const wrist = landmarks[0];
 
-              if (name === "Open_Palm") onGesture("CHAOS");
-              else if (name === "Closed_Fist") onGesture("FORMED");
-
+              // --- 1. 计算【捏合距离】(Thumb Tip <-> Index Tip)
               const thumbTip = landmarks[4];
               const indexTip = landmarks[8];
-              const distance = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
-              
-              const isPinching = distance < 0.1; 
+              const pinchDist = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
+
+              // --- 2. 计算【其他三指开合度】 (Middle, Ring, Pinky Tips <-> Wrist)
+              // 握拳时，指尖离手腕很近；伸开时，指尖离手腕远
+              const middleTip = landmarks[12];
+              const ringTip = landmarks[16];
+              const pinkyTip = landmarks[20];
+
+              const getDistToWrist = (p: any) => Math.sqrt(Math.pow(p.x - wrist.x, 2) + Math.pow(p.y - wrist.y, 2));
+              const avgOtherFingersDist = (getDistToWrist(middleTip) + getDistToWrist(ringTip) + getDistToWrist(pinkyTip)) / 3;
+
+              // 阈值设定 (需要根据实际摄像头调整，通常 0.1 - 0.2 是分界线)
+              const FIST_THRESHOLD = 0.25; // 如果平均距离小于这个值，说明手指卷曲 -> 握拳
+              const PINCH_CONTACT_THRESHOLD = 0.08; // 捏合接触距离
+
+              // --- 3. 严格的互斥逻辑 ---
+              let isPinching = false;
+
+              // 逻辑A: 如果 MediaPipe 直接识别为 Closed_Fist，或者其他三指卷曲 -> 握拳模式
+              if (name === "Closed_Fist" || avgOtherFingersDist < FIST_THRESHOLD) {
+                 onGesture("FORMED"); // 变树
+                 isPinching = false;
+                 if (debugMode) onStatus(`状态: 握拳 (Tree) | Dist: ${avgOtherFingersDist.toFixed(2)}`);
+              } 
+              // 逻辑B: 如果不是握拳，且大拇指食指靠得近 -> 捏合模式
+              else if (pinchDist < PINCH_CONTACT_THRESHOLD) {
+                 // 这里不需要改变树的状态，保持原样，只触发捏合
+                 isPinching = true;
+                 if (debugMode) onStatus(`状态: 捏合 (View) | Pinch: ${pinchDist.toFixed(2)}`);
+              } 
+              // 逻辑C: 张开手
+              else if (name === "Open_Palm" || avgOtherFingersDist > 0.4) {
+                 onGesture("CHAOS"); // 散开
+                 isPinching = false;
+                 if (debugMode) onStatus(`状态: 张开 (Chaos)`);
+              }
+
               onPinch(isPinching);
 
-              if (debugMode) onStatus(`手势: ${name} | PinchDist: ${distance.toFixed(3)} | Active: ${isPinching}`);
-
+              // 移动控制
               const speed = (0.5 - landmarks[0].x) * 0.15;
               onMove(Math.abs(speed) > 0.02 ? speed : 0);
 
@@ -564,7 +571,6 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
     </>
   );
 };
-
 
 export default function GrandTreeApp() {
   const [sceneState, setSceneState] = useState<'CHAOS' | 'FORMED'>('CHAOS');
@@ -615,10 +621,9 @@ export default function GrandTreeApp() {
         <>
           <div style={{ position: 'absolute', bottom: '30px', left: '40px', color: '#888', zIndex: 10, fontFamily: 'sans-serif', userSelect: 'none' }}>
             <div style={{ marginBottom: '15px' }}>
-              <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>Pinch to View</p>
-              <p style={{ fontSize: '24px', color: '#FFD700', fontWeight: 'bold', margin: 0 }}>
-                 捏合手势 <span style={{ fontSize: '14px', color: '#aaa', fontWeight: 'normal' }}>查看照片</span>
-              </p>
+              <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>Gesture Guide</p>
+              <p style={{ fontSize: '14px', color: '#FFD700', margin: 0 }}>👊 握拳: 组合圣诞树</p>
+              <p style={{ fontSize: '14px', color: '#FFD700', margin: '5px 0 0' }}>👌 捏合(OK手势): 查看照片</p>
             </div>
           </div>
 
