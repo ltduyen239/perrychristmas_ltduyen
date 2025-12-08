@@ -5,8 +5,7 @@ import {
   Environment,
   PerspectiveCamera,
   shaderMaterial,
-  useTexture,
-  Float
+  useTexture
 } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -52,11 +51,11 @@ const bodyPhotoPaths = [
 const CONFIG = {
   colors: {
     bg: '#000000',
-    champagneGold: '#ffd966', // 参考代码中的香槟金
-    deepGreen: '#03180a',     // 深邃绿
-    accentRed: '#990000',     // 甚至更深的红
+    champagneGold: '#ffd966', 
+    deepGreen: '#03180a',     
+    accentRed: '#990000',     
     warmLight: '#ffcc77',
-    borders: ['#ffd966', '#fff5cc', '#e6c200'], // 金色系边框
+    borders: ['#ffd966', '#fff5cc', '#e6c200'], 
   },
   counts: {
     foliage: 10000,
@@ -98,7 +97,6 @@ const DustMaterial = shaderMaterial(
   varying float vAlpha;
   
   void main() {
-    // 圆形粒子
     float r = distance(gl_PointCoord, vec2(0.5));
     if (r > 0.5) discard;
     
@@ -112,7 +110,7 @@ const DustMaterial = shaderMaterial(
 );
 extend({ DustMaterial });
 
-// --- 树叶材质 (保持之前的优良设计) ---
+// --- 树叶材质 ---
 const FoliageMaterial = shaderMaterial(
   { uTime: 0, uColor: new THREE.Color(CONFIG.colors.deepGreen), uProgress: 0 },
   `uniform float uTime; uniform float uProgress; attribute vec3 aTargetPos; attribute float aRandom;
@@ -120,7 +118,6 @@ const FoliageMaterial = shaderMaterial(
   float cubicInOut(float t) { return t < 0.5 ? 4.0 * t * t * t : 0.5 * pow(2.0 * t - 2.0, 3.0) + 1.0; }
   void main() {
     float t = cubicInOut(uProgress);
-    // 散开时的噪点运动
     vec3 noise = vec3(sin(uTime * 0.5 + position.y), cos(uTime * 0.3 + position.z), sin(uTime * 0.5 + position.x)) * 2.0;
     vec3 finalPos = mix(position + noise, aTargetPos, t);
     
@@ -132,7 +129,6 @@ const FoliageMaterial = shaderMaterial(
   `uniform vec3 uColor; varying float vMix;
   void main() {
     float r = distance(gl_PointCoord, vec2(0.5)); if (r > 0.5) discard;
-    // 颜色渐变：散开时暗淡，聚拢时翠绿
     vec3 col = mix(uColor * 0.2, uColor * 1.5, vMix);
     gl_FragColor = vec4(col, 0.8);
   }`
@@ -144,7 +140,7 @@ const getTreePosition = () => {
   const h = CONFIG.tree.height; const rBase = CONFIG.tree.radius;
   const y = (Math.random() * h) - (h / 2); 
   const normY = (y + h/2) / h;
-  const r = rBase * (1 - normY) * Math.sqrt(Math.random()); // 内部填充
+  const r = rBase * (1 - normY) * Math.sqrt(Math.random()); 
   const theta = Math.random() * Math.PI * 2;
   return [r * Math.cos(theta), y, r * Math.sin(theta)];
 };
@@ -157,7 +153,6 @@ const PulsingDust = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
     const pos = new Float32Array(count * 3);
     const sc = new Float32Array(count);
     const sp = new Float32Array(count);
-    // 散布在更大的范围内
     const pts = random.inSphere(new Float32Array(count * 3), { radius: 40 }) as Float32Array;
     for(let i=0; i<count; i++) {
         pos[i*3] = pts[i*3]; pos[i*3+1] = pts[i*3+1]; pos[i*3+2] = pts[i*3+2];
@@ -208,7 +203,6 @@ const Foliage = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   useFrame((stateObj, delta) => {
     if (materialRef.current) {
       materialRef.current.uTime = stateObj.clock.elapsedTime;
-      // 缓动动画
       materialRef.current.uProgress = THREE.MathUtils.damp(materialRef.current.uProgress, state === 'FORMED' ? 1 : 0, 1.0, delta);
     }
   });
@@ -226,7 +220,7 @@ const Foliage = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- 3. 组件: 香槟金相框 (优化比例与材质) ---
+// --- 3. 组件: 香槟金相框 ---
 const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPinching: boolean }) => {
   const textures = useTexture(CONFIG.photos.body);
   const count = CONFIG.counts.ornaments;
@@ -234,23 +228,20 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
   const { camera } = useThree();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // 优化：更精致的相框，有厚度
   const frameGeometry = useMemo(() => new THREE.BoxGeometry(1.3, 1.6, 0.05), []);
-  const photoGeometry = useMemo(() => new THREE.PlaneGeometry(1.1, 1.1), []); // 正方形照片区域
+  const photoGeometry = useMemo(() => new THREE.PlaneGeometry(1.1, 1.1), []); 
 
   const data = useMemo(() => {
     return new Array(count).fill(0).map((_, i) => {
-      // 散开位置：环绕分布
       const rScatter = 20 + Math.random() * 20;
       const thetaScatter = Math.random() * Math.PI * 2;
       const yScatter = (Math.random() - 0.5) * 40;
       const chaosPos = new THREE.Vector3(rScatter * Math.cos(thetaScatter), yScatter, rScatter * Math.sin(thetaScatter));
 
-      // 树上位置：表面分布
       const h = CONFIG.tree.height; 
       const y = (Math.random() * h) - (h / 2);
       const rBase = CONFIG.tree.radius;
-      const rTree = (rBase * (1 - (y + h/2)/h)) + 1.5; // 稍微浮出表面
+      const rTree = (rBase * (1 - (y + h/2)/h)) + 1.5; 
       const theta = Math.random() * Math.PI * 2;
       const targetPos = new THREE.Vector3(rTree * Math.cos(theta), y, rTree * Math.sin(theta));
       
@@ -258,14 +249,12 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
         chaosPos, targetPos,
         textureIndex: i % textures.length,
         currentPos: chaosPos.clone(),
-        // 随机旋转
         rotSpeed: { x: Math.random()*0.5, y: Math.random()*0.5 },
         scale: Math.random() * 0.4 + 0.8
       };
     });
   }, [textures, count]);
 
-  // 交互逻辑：寻找最近照片
   useEffect(() => {
     if (isPinching && activeIndex === null && groupRef.current) {
       let minDist = Infinity; let closestIdx = -1;
@@ -283,7 +272,6 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
     if (!groupRef.current) return;
     const isFormed = state === 'FORMED';
     
-    // 目标点：相机正前方固定距离 (居中修正)
     const targetViewPos = new THREE.Vector3(0, 0, -10).applyMatrix4(camera.matrixWorld);
     const localViewPos = groupRef.current.worldToLocal(targetViewPos.clone());
 
@@ -293,25 +281,19 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
 
       let target = isActive ? localViewPos : (isFormed ? d.targetPos : d.chaosPos);
       
-      // 移动插值
       d.currentPos.lerp(target, delta * (isActive ? 6.0 : 1.5));
       group.position.copy(d.currentPos);
 
-      // 旋转逻辑
       if (isActive) {
-        group.quaternion.copy(camera.quaternion); // 正对相机
+        group.quaternion.copy(camera.quaternion); 
       } else if (isFormed) {
-        // 朝向树外侧
         group.lookAt(new THREE.Vector3(group.position.x*2, group.position.y, group.position.z*2));
-        // 微微摆动
         group.rotation.z = Math.sin(stateObj.clock.elapsedTime + i) * 0.1;
       } else {
-        // 漂浮旋转
         group.rotation.x += d.rotSpeed.x * delta;
         group.rotation.y += d.rotSpeed.y * delta;
       }
 
-      // 缩放
       const s = isActive ? 3.5 : d.scale;
       group.scale.lerp(new THREE.Vector3(s,s,s), delta * 4);
     });
@@ -321,16 +303,14 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
     <group ref={groupRef}>
       {data.map((d, i) => (
         <group key={i}>
-          {/* 金色金属边框 */}
           <mesh geometry={frameGeometry}>
             <meshStandardMaterial 
               color={CONFIG.colors.champagneGold} 
               metalness={1.0} 
               roughness={0.15} 
-              envMapIntensity={2.0} // 强反射
+              envMapIntensity={2.0} 
             />
           </mesh>
-          {/* 照片 (双面) */}
           <mesh geometry={photoGeometry} position={[0, 0.1, 0.03]}>
              <meshBasicMaterial map={textures[d.textureIndex]} />
           </mesh>
@@ -343,23 +323,21 @@ const PhotoOrnaments = ({ state, isPinching }: { state: 'CHAOS' | 'FORMED', isPi
   );
 };
 
-// --- 2. 金色彩灯 (颜色与光晕优化) ---
+// --- 2. 金色彩灯 ---
 const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   const count = CONFIG.counts.lights;
   const groupRef = useRef<THREE.Group>(null);
-  const geometry = useMemo(() => new THREE.SphereGeometry(0.3, 16, 16), []); // 小而亮
+  const geometry = useMemo(() => new THREE.SphereGeometry(0.3, 16, 16), []); 
 
   const data = useMemo(() => {
-    // 暖色系调色盘
     const palette = [CONFIG.colors.champagneGold, CONFIG.colors.warmLight, CONFIG.colors.accentRed, '#ff3300'];
     return new Array(count).fill(0).map(() => {
-      // 树表面分布
       const h = CONFIG.tree.height; const y = (Math.random() * h) - (h / 2);
       const rTree = (CONFIG.tree.radius * (1 - (y + h/2)/h)) + 0.5;
       const theta = Math.random() * Math.PI * 2;
       
       const targetPos = new THREE.Vector3(rTree * Math.cos(theta), y, rTree * Math.sin(theta));
-      const chaosPos = targetPos.clone().multiplyScalar(4.0); // 散开得更远
+      const chaosPos = targetPos.clone().multiplyScalar(4.0); 
 
       return {
         chaosPos, targetPos,
@@ -382,9 +360,7 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       d.currentPos.lerp(target, delta * 2.0);
       mesh.position.copy(d.currentPos);
 
-      // 呼吸闪烁
       const intensity = Math.sin(t * d.blinkSpeed + d.blinkOffset) * 0.5 + 0.5;
-      // 形成时更亮，散开时暗淡
       mesh.material.emissiveIntensity = isFormed ? (2.0 + intensity * 4.0) : 0.5;
     });
   });
@@ -396,7 +372,7 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
           <meshStandardMaterial 
             color={d.color} 
             emissive={d.color} 
-            toneMapped={false} // 允许超亮，配合 Bloom
+            toneMapped={false} 
             transparent 
             opacity={0.9} 
           />
@@ -406,19 +382,18 @@ const FairyLights = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 };
 
-// --- 其他装饰 (礼物/星星) ---
+// --- 其他装饰 ---
 const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   const count = CONFIG.counts.elements;
   const groupRef = useRef<THREE.Group>(null);
   
-  // 简单的几何体
   const boxGeo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
   const sphereGeo = useMemo(() => new THREE.SphereGeometry(0.6, 32, 32), []);
 
   const data = useMemo(() => {
     return new Array(count).fill(0).map(() => {
       const h = CONFIG.tree.height; const y = (Math.random() * h) - (h / 2);
-      const r = (CONFIG.tree.radius * (1 - (y + h/2)/h)) * 0.7; // 藏在树里面一点
+      const r = (CONFIG.tree.radius * (1 - (y + h/2)/h)) * 0.7; 
       const theta = Math.random() * Math.PI * 2;
       
       const targetPos = new THREE.Vector3(r * Math.cos(theta), y, r * Math.sin(theta));
@@ -477,7 +452,7 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
         <meshStandardMaterial 
             color={CONFIG.colors.champagneGold} 
             emissive={CONFIG.colors.champagneGold} 
-            emissiveIntensity={3.0} // 超亮
+            emissiveIntensity={3.0} 
             toneMapped={false}
         />
       </mesh>
@@ -486,7 +461,7 @@ const TopStar = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
   );
 }
 
-// --- 4. AI 手势控制器 (全面升级) ---
+// --- 4. AI 手势控制器 ---
 const GestureController = ({ onGesture, onRotate, onPinch, onStatus, debugMode }: any) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -525,20 +500,16 @@ const GestureController = ({ onGesture, onRotate, onPinch, onStatus, debugMode }
         if (videoRef.current.videoWidth > 0) {
             const results = handLandmarker.detectForVideo(videoRef.current, performance.now());
             
-            // 调试绘制
             const ctx = canvasRef.current.getContext("2d");
             if (ctx && debugMode) {
                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
                canvasRef.current.width = videoRef.current.videoWidth; 
                canvasRef.current.height = videoRef.current.videoHeight;
-               // 这里可以添加 DrawingUtils 绘制骨架，为了性能暂时省略
             }
 
             if (results.landmarks && results.landmarks.length > 0) {
-                const lm = results.landmarks[0]; // 第一只手
+                const lm = results.landmarks[0]; 
                 
-                // --- 逻辑 1: 计算手指张开程度 (Tree vs Scatter) ---
-                // 计算指尖 (8,12,16,20) 到手腕 (0) 的平均距离
                 const wrist = lm[0];
                 const tips = [8, 12, 16, 20];
                 let spread = 0;
@@ -546,17 +517,13 @@ const GestureController = ({ onGesture, onRotate, onPinch, onStatus, debugMode }
                     const d = Math.sqrt(Math.pow(lm[idx].x - wrist.x, 2) + Math.pow(lm[idx].y - wrist.y, 2));
                     spread += d;
                 });
-                spread /= 4; // 平均值
+                spread /= 4; 
 
-                // --- 逻辑 2: 计算捏合 (View Photo) ---
-                // 拇指 (4) 与 食指 (8) 的距离
                 const pinchDist = Math.sqrt(Math.pow(lm[4].x - lm[8].x, 2) + Math.pow(lm[4].y - lm[8].y, 2));
 
-                // --- 状态判定 ---
-                // 阈值需根据实际测试微调
-                const THRESHOLD_FIST = 0.25; // 握拳
-                const THRESHOLD_OPEN = 0.40; // 张开
-                const THRESHOLD_PINCH = 0.05; // 捏合
+                const THRESHOLD_FIST = 0.25; 
+                const THRESHOLD_OPEN = 0.40; 
+                const THRESHOLD_PINCH = 0.05; 
 
                 let isPinching = false;
 
@@ -565,20 +532,18 @@ const GestureController = ({ onGesture, onRotate, onPinch, onStatus, debugMode }
                     if(debugMode) onStatus("GESTURE: PINCH (VIEW)");
                 } else {
                     if (spread < THRESHOLD_FIST) {
-                        onGesture('FORMED'); // 变树
+                        onGesture('FORMED'); 
                         if(debugMode) onStatus("GESTURE: FIST (TREE)");
                     } else if (spread > THRESHOLD_OPEN) {
-                        onGesture('CHAOS'); // 散开
+                        onGesture('CHAOS'); 
                         if(debugMode) onStatus("GESTURE: OPEN (SCATTER)");
                     }
                 }
                 onPinch(isPinching);
 
-                // --- 逻辑 3: 手掌移动控制旋转 (在散开模式下) ---
-                // 使用手腕 x 坐标 (-0.5 到 0.5)
                 const handX = 0.5 - lm[0].x; 
                 if (Math.abs(handX) > 0.1) {
-                    onRotate(handX * 0.05); // 速度系数
+                    onRotate(handX * 0.05); 
                 } else {
                     onRotate(0);
                 }
@@ -603,13 +568,12 @@ const GestureController = ({ onGesture, onRotate, onPinch, onStatus, debugMode }
   );
 };
 
-// --- 5. 主场景 (金色闪光与光照) ---
+// --- 5. 主场景 ---
 const Experience = ({ sceneState, manualRotationSpeed, isPinching }: any) => {
   const groupRef = useRef<THREE.Group>(null);
   
   useFrame((_, delta) => {
     if (groupRef.current && !isPinching) {
-        // 自动旋转 + 手势控制的额外旋转
         const autoSpeed = sceneState === 'FORMED' ? 0.2 : 0.05;
         groupRef.current.rotation.y += (autoSpeed * delta) + manualRotationSpeed;
     }
@@ -623,11 +587,9 @@ const Experience = ({ sceneState, manualRotationSpeed, isPinching }: any) => {
       <color attach="background" args={[CONFIG.colors.bg]} />
       <fog attach="fog" args={[CONFIG.colors.bg, 40, 120]} />
 
-      {/* 环境与光照 - 打造金色奢华感 */}
       <Environment preset="city" />
       <ambientLight intensity={0.5} />
       
-      {/* 金色聚光灯，照亮树的主体 */}
       <spotLight position={[30, 50, 30]} angle={0.4} penumbra={0.5} intensity={100} color={CONFIG.colors.champagneGold} castShadow />
       <spotLight position={[-30, 20, -10]} angle={0.5} penumbra={1} intensity={50} color={CONFIG.colors.warmLight} />
       
@@ -644,10 +606,10 @@ const Experience = ({ sceneState, manualRotationSpeed, isPinching }: any) => {
 
       <EffectComposer>
         <Bloom 
-            luminanceThreshold={0.6} // 只有亮的物体发光
+            luminanceThreshold={0.6} 
             luminanceSmoothing={0.3} 
-            intensity={1.2} // 强度适中，不要过曝
-            radius={0.6}    // 扩散范围
+            intensity={1.2} 
+            radius={0.6}    
             mipmapBlur 
         />
         <Vignette eskil={false} offset={0.1} darkness={1.1} />
@@ -692,7 +654,6 @@ export default function GrandTreeApp() {
         debugMode={debugMode} 
       />
  
-      {/* 始终显示的标题 */}
       <div style={{ position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)', zIndex: 10, textAlign: 'center', pointerEvents: 'none' }}>
         <h1 style={{ 
             fontSize: '4rem', fontFamily: 'serif', color: CONFIG.colors.champagneGold, 
