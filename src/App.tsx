@@ -505,7 +505,6 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
                 
                 // Vẽ video feed lên canvas (lật ngang để khớp với mirror effect)
                 ctx.save();
-                ctx.scale(-1, 1);
                 ctx.drawImage(videoRef.current, -canvasRef.current.width, 0, canvasRef.current.width, canvasRef.current.height);
                 ctx.restore();
                 
@@ -516,7 +515,7 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
                    drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 2, radius: 4 });
                 }
             }
-            
+
             if (results.gestures.length > 0 && results.landmarks.length > 0) {
               const name = results.gestures[0][0].categoryName;
               const landmarks = results.landmarks[0];
