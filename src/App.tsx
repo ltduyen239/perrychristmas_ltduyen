@@ -470,7 +470,7 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
     let gestureRecognizer: GestureRecognizer;
     let requestRef: number;
     const setup = async () => {
-      onStatus("正在初始化 AI...");
+      onStatus("Đang khởi tạo AI…");
       try {
         const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm");
         gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
@@ -643,7 +643,7 @@ export default function GrandTreeApp() {
             </button>
           </div>
 
-          <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', color: aiStatus.includes('错误') ? '#FF0000' : 'rgba(255, 215, 0, 0.6)', fontSize: '10px', letterSpacing: '2px', zIndex: 10, background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px' }}>
+          <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', color: aiStatus.includes('lỗi') ? '#FF0000' : 'rgba(255, 215, 0, 0.6)', fontSize: '10px', letterSpacing: '2px', zIndex: 10, background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px' }}>
             {aiStatus}
           </div>
         </>
