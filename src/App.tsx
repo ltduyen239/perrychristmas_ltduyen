@@ -318,7 +318,7 @@ const ChristmasElements = ({ state }: { state: 'CHAOS' | 'FORMED' }) => {
       return { 
           type, chaosPos, targetPos, color, scale: 0.5 + Math.random() * 0.5,
           currentPos: chaosPos.clone(), 
-          rotationSpeed: { x: Math.random()-1, y: Math.random()-1, z: Math.random()-1 }
+          rotationSpeed: { x: (Math.random()-1)*1.5, y: (Math.random()-1)*1.5, z: (Math.random()-1)*1.5 }
       };
     });
   }, []);
