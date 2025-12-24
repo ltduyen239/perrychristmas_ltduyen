@@ -485,11 +485,11 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
-          onStatus("AI 就绪: 握拳变树 / OK手势捏合照片");
+          onStatus("AI sẵn sàng: Nắm tay tạo cây / Chụm tay (OK) để xem ảnh");
           predictWebcam();
         }
       } catch (err: any) {
-        onStatus(`AI 错误: ${err.message}`);
+        onStatus(`Lỗi AI: ${err.message}`);
       }
     };
 
