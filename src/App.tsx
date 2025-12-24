@@ -503,10 +503,8 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
                 canvasRef.current.width = videoRef.current.videoWidth; 
                 canvasRef.current.height = videoRef.current.videoHeight;
                 
-                // Vẽ video feed lên canvas (lật ngang để khớp với mirror effect)
-                ctx.save();
-                ctx.drawImage(videoRef.current, -canvasRef.current.width, 0, canvasRef.current.width, canvasRef.current.height);
-                ctx.restore();
+                // Vẽ video feed trực tiếp (không lật ở đây)
+                ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
                 
                 // Vẽ xương tay lên trên video
                 if (results.landmarks) for (const landmarks of results.landmarks) {
