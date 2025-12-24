@@ -611,7 +611,7 @@ export default function GrandTreeApp() {
           Merry Christmas!
         </h1>
         <p style={{ fontSize: '16px', color: 'rgba(255, 215, 0, 0.8)', marginTop: '10px', letterSpacing: '3px', fontFamily: 'serif' }}>
-          ✨ Perry & Elva ✨
+          ✨ Duyên xinh đẹp ✨
         </p>
       </div>
       
@@ -620,8 +620,8 @@ export default function GrandTreeApp() {
           <div style={{ position: 'absolute', bottom: '30px', left: '40px', color: '#888', zIndex: 10, fontFamily: 'sans-serif', userSelect: 'none' }}>
             <div style={{ marginBottom: '15px' }}>
               <p style={{ fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '4px' }}>Gesture Guide</p>
-              <p style={{ fontSize: '14px', color: '#FFD700', margin: 0 }}>👊 握拳: 组合圣诞树</p>
-              <p style={{ fontSize: '14px', color: '#FFD700', margin: '5px 0 0' }}>👌 捏合(OK手势): 查看照片</p>
+              <p style={{ fontSize: '14px', color: '#FFD700', margin: 0 }}>👊 Nắm tay: Tạo hình cây thông</p>
+              <p style={{ fontSize: '14px', color: '#FFD700', margin: '5px 0 0' }}>👌 Chụm tay (OK): Xem ảnh kỷ niệm</p>
             </div>
           </div>
 
@@ -631,15 +631,15 @@ export default function GrandTreeApp() {
             </button>
 
             <button onClick={toggleFullscreen} style={{ padding: '12px 15px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid #999', color: '#999', fontFamily: 'sans-serif', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-               全屏
+               Toàn màn hình
             </button>
 
             <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '12px 15px', backgroundColor: debugMode ? '#FFD700' : 'rgba(0,0,0,0.5)', border: '1px solid #FFD700', color: debugMode ? '#000' : '#FFD700', fontFamily: 'sans-serif', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-               {debugMode ? '调试开' : '调试关'}
+               {debugMode ? 'Bật debug' : 'Tắt debug'}
             </button>
             
             <button onClick={() => setSceneState(s => s === 'CHAOS' ? 'FORMED' : 'CHAOS')} style={{ padding: '12px 30px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255, 215, 0, 0.5)', color: '#FFD700', fontFamily: 'serif', fontSize: '14px', fontWeight: 'bold', letterSpacing: '3px', textTransform: 'uppercase', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-               {sceneState === 'CHAOS' ? '组合' : '散开'}
+               {sceneState === 'CHAOS' ? 'Hợp nhất' : 'Tan ra'}
             </button>
           </div>
 
