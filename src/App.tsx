@@ -489,7 +489,7 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
           predictWebcam();
         }
       } catch (err: any) {
-        onStatus(`Lỗi AI: ${err.message}`);
+        onStatus(`Lỗi AI: Lỗi chưa mở webcam`);
       }
     };
 
@@ -533,16 +533,16 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
               if (name === "Closed_Fist" || avgOtherFingersDist < FIST_THRESHOLD) {
                  onGesture("FORMED");
                  isPinching = false;
-                 if (debugMode) onStatus(`状态: 握拳 (Tree)`);
+                 if (debugMode) onStatus(`Trạng thái: Nắm tay (Tree)`);
               } 
               else if (pinchDist < PINCH_CONTACT_THRESHOLD) {
                  isPinching = true;
-                 if (debugMode) onStatus(`状态: 捏合 (View)`);
+                 if (debugMode) onStatus(`Trạng thái: Véo tay (View)`);
               } 
               else if (name === "Open_Palm" || avgOtherFingersDist > 0.4) {
                  onGesture("CHAOS");
                  isPinching = false;
-                 if (debugMode) onStatus(`状态: 张开 (Chaos)`);
+                 if (debugMode) onStatus(`Trạng thái: Mở bàn tay (Chaos)`);
               }
 
               onPinch(isPinching);
@@ -574,7 +574,7 @@ export default function GrandTreeApp() {
   const [sceneState, setSceneState] = useState<'CHAOS' | 'FORMED'>('CHAOS');
   const [rotationSpeed, setRotationSpeed] = useState(0);
   const [isPinching, setIsPinching] = useState(false);
-  const [aiStatus, setAiStatus] = useState("正在初始化...");
+  const [aiStatus, setAiStatus] = useState("Đang khởi tạo...");
   const [debugMode, setDebugMode] = useState(false);
   const [isUiVisible, setIsUiVisible] = useState(true);
   const { isPlaying, toggleMusic } = useBackgroundMusic();
