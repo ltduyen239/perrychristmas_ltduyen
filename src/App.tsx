@@ -499,16 +499,24 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
             const results = gestureRecognizer.recognizeForVideo(videoRef.current, Date.now());
             const ctx = canvasRef.current.getContext("2d");
             if (ctx && debugMode) {
-                ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+                // Đặt kích thước canvas theo video
                 canvasRef.current.width = videoRef.current.videoWidth; 
                 canvasRef.current.height = videoRef.current.videoHeight;
+                
+                // Vẽ video feed lên canvas (lật ngang để khớp với mirror effect)
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(videoRef.current, -canvasRef.current.width, 0, canvasRef.current.width, canvasRef.current.height);
+                ctx.restore();
+                
+                // Vẽ xương tay lên trên video
                 if (results.landmarks) for (const landmarks of results.landmarks) {
                    const drawingUtils = new DrawingUtils(ctx);
-                   drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, { color: "#FFD700", lineWidth: 2 });
-                   drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 1 });
+                   drawingUtils.drawConnectors(landmarks, GestureRecognizer.HAND_CONNECTIONS, { color: "#FFD700", lineWidth: 3 });
+                   drawingUtils.drawLandmarks(landmarks, { color: "#FF0000", lineWidth: 2, radius: 4 });
                 }
             }
-
+            
             if (results.gestures.length > 0 && results.landmarks.length > 0) {
               const name = results.gestures[0][0].categoryName;
               const landmarks = results.landmarks[0];
@@ -635,7 +643,7 @@ export default function GrandTreeApp() {
             </button>
 
             <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '12px 15px', backgroundColor: debugMode ? '#FFD700' : 'rgba(0,0,0,0.5)', border: '1px solid #FFD700', color: debugMode ? '#000' : '#FFD700', fontFamily: 'sans-serif', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-               {debugMode ? 'Bật debug' : 'Tắt debug'}
+               {debugMode ? 'Bật màn hình' : 'Tắt màn hình'}
             </button>
             
             <button onClick={() => setSceneState(s => s === 'CHAOS' ? 'FORMED' : 'CHAOS')} style={{ padding: '12px 30px', backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255, 215, 0, 0.5)', color: '#FFD700', fontFamily: 'serif', fontSize: '14px', fontWeight: 'bold', letterSpacing: '3px', textTransform: 'uppercase', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
