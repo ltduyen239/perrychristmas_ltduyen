@@ -552,7 +552,7 @@ const GestureController = ({ onGesture, onMove, onPinch, onStatus, debugMode }: 
 
               onPinch(isPinching);
 
-              const speed = (0.5 - landmarks[0].x) * 0.15;
+              const speed = (0.5 - landmarks[0].x) * 0.5;
               onMove(Math.abs(speed) > 0.02 ? speed : 0);
 
             } else { 
